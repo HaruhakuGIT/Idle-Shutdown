@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(ShutdownWarning VERSION 1.0.6 LANGUAGES CXX)
+project(ShutdownWarning VERSION 1.0.7 LANGUAGES CXX)
 
 include(CTest)
 include(GNUInstallDirs)

@@ -33,8 +33,8 @@ Get the installer or package from the build artifacts on GitHub Actions or from 
 
 | Platform | Installer or package | Supported environment |
 | --- | --- | --- |
-| Windows x64 | `IdleShutdown-Setup-1.0.6-x64.exe` | Windows 10 version 1703 or newer |
-| Arch Linux x86_64 | `shutdown-warning-1.0.6-1-x86_64.pkg.tar.zst` | X11 or a supported Wayland compositor |
+| Windows x64 | `IdleShutdown-Setup-1.0.7-x64.exe` | Windows 10 version 1703 or newer |
+| Arch Linux x86_64 | `shutdown-warning-1.0.7-1-x86_64.pkg.tar.zst` | X11 or a supported Wayland compositor |
 
 ### Windows
 
@@ -47,7 +47,7 @@ During an automatic power-off, the final animation fades to black across all mon
 ### Arch Linux
 
 ```bash
-sudo pacman -U ./shutdown-warning-1.0.6-1-x86_64.pkg.tar.zst
+sudo pacman -U ./shutdown-warning-1.0.7-1-x86_64.pkg.tar.zst
 shutdown-warning --settings
 ```
 

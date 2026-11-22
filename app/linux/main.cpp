@@ -1316,7 +1316,7 @@ int main(int argc, char** argv) {
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Shutdown Warning"));
     app.setApplicationDisplayName(QStringLiteral("Idle Shutdown"));
-    app.setApplicationVersion(QStringLiteral("1.0.6"));
+    app.setApplicationVersion(QStringLiteral("1.0.7"));
     app.setOrganizationName(QStringLiteral("ShutdownWarning"));
     app.setDesktopFileName(QStringLiteral("shutdown-warning"));
     app.setQuitOnLastWindowClosed(false);

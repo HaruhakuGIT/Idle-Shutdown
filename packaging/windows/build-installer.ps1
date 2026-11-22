@@ -19,7 +19,7 @@ if (-not $OutputDirectory) { $OutputDirectory = Join-Path $project 'dist' }
 $binaryPath = (Resolve-Path -LiteralPath $Binary).Path
 $iconPath = (Resolve-Path -LiteralPath (Join-Path $project 'app/windows/ShutdownWarning.ico')).Path
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
-$setupPath = Join-Path (Resolve-Path -LiteralPath $OutputDirectory).Path "ShutdownWarning-Setup-$Version-x64.exe"
+$setupPath = Join-Path (Resolve-Path -LiteralPath $OutputDirectory).Path "IdleShutdown-Setup-$Version-x64.exe"
 
 if (-not $Compiler) {
     $onPath = Get-Command makensis.exe -ErrorAction SilentlyContinue

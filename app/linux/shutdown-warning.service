@@ -1,5 +1,5 @@
 [Unit]
-Description=Shutdown Warning
+Description=Idle Shutdown
 PartOf=graphical-session.target
 After=graphical-session-pre.target
 ConditionEnvironment=WAYLAND_DISPLAY

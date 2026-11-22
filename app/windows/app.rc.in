@@ -15,11 +15,11 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "FileDescription", "Shutdown Warning"
+            VALUE "FileDescription", "Idle Shutdown"
             VALUE "FileVersion", "@PROJECT_VERSION@"
             VALUE "InternalName", "ShutdownWarning"
             VALUE "OriginalFilename", "ShutdownWarning.exe"
-            VALUE "ProductName", "Shutdown Warning"
+            VALUE "ProductName", "Idle Shutdown"
             VALUE "ProductVersion", "@PROJECT_VERSION@"
         END
     END

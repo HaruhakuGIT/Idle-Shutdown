@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Shutdown Warning
-Comment=Show a warning after inactivity
+Name=Idle Shutdown
+Comment=Warn and optionally shut down the PC after inactivity
 Exec=shutdown-warning --settings
 Icon=shutdown-warning
 Terminal=false

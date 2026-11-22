@@ -1,7 +1,7 @@
 pkgname=shutdown-warning
-pkgver=1.0.5
+pkgver=1.0.6
 pkgrel=1
-pkgdesc='Animated multi-monitor warning and optional power-off after inactivity'
+pkgdesc='Idle Shutdown: multi-monitor inactivity warning and optional automatic power-off'
 arch=('x86_64')
 depends=('qt6-base' 'libpulse' 'kidletime' 'layer-shell-qt' 'wayland' 'libxext' 'libxss')
 optdepends=('qt6-wayland: native Wayland windows')

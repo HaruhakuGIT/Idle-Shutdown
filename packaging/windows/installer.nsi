@@ -16,7 +16,7 @@ RequestExecutionLevel user
   !error "Define VERSION as major.minor.patch."
 !endif
 !ifndef APP_NAME
-  !define APP_NAME "Shutdown Warning"
+  !define APP_NAME "Idle Shutdown"
 !endif
 !ifndef APP_REGKEY
   !define APP_REGKEY "ShutdownWarning"
@@ -34,10 +34,10 @@ InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
 SetCompressor /SOLID lzma
 
 VIProductVersion "${VERSION}.0"
-VIAddVersionKey /LANG=1033 "CompanyName" "Shutdown Warning"
+VIAddVersionKey /LANG=1033 "CompanyName" "Idle Shutdown"
 VIAddVersionKey /LANG=1033 "FileDescription" "${APP_NAME} Installer"
 VIAddVersionKey /LANG=1033 "FileVersion" "${VERSION}"
-VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright (c) Shutdown Warning contributors"
+VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright (c) Idle Shutdown contributors"
 VIAddVersionKey /LANG=1033 "ProductName" "${APP_NAME}"
 VIAddVersionKey /LANG=1033 "ProductVersion" "${VERSION}"
 
@@ -72,7 +72,7 @@ Function .onInit
   ${IfNot} ${AtLeastWin10}
   ${OrIfNot} ${AtLeastBuild} 15063
   ${OrIfNot} ${RunningX64}
-    MessageBox MB_OK|MB_ICONSTOP "Shutdown Warning requires 64-bit Windows 10 version 1703 or newer." /SD IDOK
+    MessageBox MB_OK|MB_ICONSTOP "Idle Shutdown requires 64-bit Windows 10 version 1703 or newer." /SD IDOK
     SetErrorLevel 2
     Abort
   ${EndIf}
@@ -90,7 +90,7 @@ Section "Install"
   ${EndIf}
   ${If} ${FileExists} "$INSTDIR\ShutdownWarning.exe"
     ${If} $1 == ""
-      MessageBox MB_OK|MB_ICONSTOP "This folder already contains another copy of Shutdown Warning. Choose a different folder." /SD IDOK
+      MessageBox MB_OK|MB_ICONSTOP "This folder already contains another copy of Idle Shutdown. Choose a different folder." /SD IDOK
       SetErrorLevel 2
       Abort
     ${EndIf}
@@ -101,6 +101,12 @@ Section "Install"
   File /oname=ShutdownWarning.exe "${APP_EXE}"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
+  ${If} $1 == $INSTDIR
+    ReadRegStr $2 HKCU "${UNINSTALL_KEY}" "DisplayName"
+    ${If} $2 == "Shutdown Warning"
+      Delete "$SMPROGRAMS\Shutdown Warning.lnk"
+    ${EndIf}
+  ${EndIf}
   CreateShortCut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\ShutdownWarning.exe" "--settings"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${APP_NAME}"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${VERSION}"

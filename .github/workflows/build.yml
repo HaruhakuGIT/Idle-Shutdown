@@ -39,7 +39,7 @@ jobs:
       - name: Upload Windows installer
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: shutdown-warning-windows-x64
+          name: idle-shutdown-windows-x64
           path: dist/*.exe
           if-no-files-found: error
 
@@ -75,6 +75,6 @@ jobs:
       - name: Upload Arch package
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: shutdown-warning-arch-x86_64
+          name: idle-shutdown-arch-x86_64
           path: dist/*.pkg.tar.zst
           if-no-files-found: error

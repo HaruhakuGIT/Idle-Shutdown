@@ -518,7 +518,7 @@ public:
     Overlay(const WarningArt& art, int duration, bool force, std::function<void()> cancel)
         : art(art), duration(duration), force(force), cancel(std::move(cancel)) {
         setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
-        setWindowTitle(QStringLiteral("Shutdown Warning Overlay"));
+        setWindowTitle(QStringLiteral("Idle Shutdown Overlay"));
         setAttribute(Qt::WA_TranslucentBackground);
         setMouseTracking(true);
     }
@@ -710,7 +710,7 @@ bool setXdgStartsAtLogin(bool enabled) {
     }
     QSaveFile file(path);
     const QByteArray entry =
-        "[Desktop Entry]\nType=Application\nName=Shutdown Warning\n"
+        "[Desktop Entry]\nType=Application\nName=Idle Shutdown\n"
         "Exec=shutdown-warning --background\nTryExec=shutdown-warning\nIcon=shutdown-warning\n";
     return file.open(QIODevice::WriteOnly) && file.write(entry) == entry.size() && file.commit();
 }
@@ -882,7 +882,7 @@ public:
 private:
     void setupTray() {
         tray.setIcon(icon);
-        tray.setToolTip(QStringLiteral("Shutdown Warning"));
+        tray.setToolTip(QStringLiteral("Idle Shutdown"));
         auto* menu = new QMenu(&dialog);
         menu->addAction(QStringLiteral("Settings"), this, [this] { showSettings(); });
         menu->addAction(QStringLiteral("Preview"), this, [this] { begin(settings, false); });
@@ -939,7 +939,7 @@ private:
     }
 
     void buildSettings() {
-        dialog.setWindowTitle(QStringLiteral("Shutdown Warning Settings"));
+        dialog.setWindowTitle(QStringLiteral("Idle Shutdown Settings"));
         dialog.setWindowIcon(icon);
         dialog.setMinimumWidth(440);
         dialog.setStyleSheet(QStringLiteral(R"(
@@ -1037,7 +1037,7 @@ private:
         connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
         connect(save, &QPushButton::clicked, this, [this] {
             if (startAtLogin->isChecked() != savedStartAtLogin && !setStartsAtLogin(startAtLogin->isChecked())) {
-                QMessageBox::warning(&dialog, QStringLiteral("Shutdown Warning"),
+                QMessageBox::warning(&dialog, QStringLiteral("Idle Shutdown"),
                                      QStringLiteral("Could not update the login startup entry."));
                 return;
             }
@@ -1192,7 +1192,7 @@ private:
                               name.endsWith(QStringLiteral(".NotSupported")))) {
                     requestPowerOff(false);
                 } else {
-                    QMessageBox::warning(&dialog, QStringLiteral("Shutdown Warning"),
+                    QMessageBox::warning(&dialog, QStringLiteral("Idle Shutdown"),
                         QStringLiteral("Linux could not power off this PC.\n%1").arg(result.errorMessage()));
                 }
             }
@@ -1315,7 +1315,8 @@ int main(int argc, char** argv) {
 
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Shutdown Warning"));
-    app.setApplicationVersion(QStringLiteral("1.0.5"));
+    app.setApplicationDisplayName(QStringLiteral("Idle Shutdown"));
+    app.setApplicationVersion(QStringLiteral("1.0.6"));
     app.setOrganizationName(QStringLiteral("ShutdownWarning"));
     app.setDesktopFileName(QStringLiteral("shutdown-warning"));
     app.setQuitOnLastWindowClosed(false);

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(ShutdownWarning VERSION 1.0.5 LANGUAGES CXX)
+project(ShutdownWarning VERSION 1.0.6 LANGUAGES CXX)
 
 include(CTest)
 include(GNUInstallDirs)
@@ -20,7 +20,7 @@ if(WIN32)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(app/linux)
 else()
-    message(FATAL_ERROR "Shutdown Warning supports Windows and Linux.")
+    message(FATAL_ERROR "Idle Shutdown supports Windows and Linux.")
 endif()
 
 if(BUILD_TESTING)

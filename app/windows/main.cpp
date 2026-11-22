@@ -1002,7 +1002,7 @@ public:
             return 1;
         }
         taskbarCreated = RegisterWindowMessageW(L"TaskbarCreated");
-        window = CreateWindowExW(0, trayClass, L"Shutdown Warning", WS_OVERLAPPED,
+        window = CreateWindowExW(0, trayClass, L"Idle Shutdown", WS_OVERLAPPED,
                                  0, 0, 0, 0, nullptr, nullptr, instance, this);
         if (!window) {
             return 1;
@@ -1012,7 +1012,7 @@ public:
         registerTrayIcon();
         resetIdleClock();
         if (!SetTimer(window, idleTimer, 500, nullptr)) {
-            MessageBoxW(nullptr, L"Could not start inactivity monitoring.", L"Shutdown Warning", MB_OK | MB_ICONERROR);
+            MessageBoxW(nullptr, L"Could not start inactivity monitoring.", L"Idle Shutdown", MB_OK | MB_ICONERROR);
             DestroyWindow(window);
             return 1;
         }
@@ -1073,7 +1073,7 @@ private:
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
         data.uCallbackMessage = trayCallback;
         data.hIcon = icon ? icon : LoadIconW(nullptr, IDI_WARNING);
-        wcscpy_s(data.szTip, L"Shutdown Warning");
+        wcscpy_s(data.szTip, L"Idle Shutdown");
         if (!Shell_NotifyIconW(NIM_ADD, &data) && !Shell_NotifyIconW(NIM_MODIFY, &data)) {
             return false;
         }
@@ -1281,7 +1281,7 @@ private:
         POINT cursor{};
         GetCursorPos(&cursor);
         settingsWindow = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, settingsClass,
-                                         L"Shutdown Warning Settings", WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN,
+                                         L"Idle Shutdown Settings", WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN,
                                          cursor.x, cursor.y, 1, 1, window, nullptr, instance, this);
         if (!settingsWindow) {
             return;
@@ -1388,7 +1388,7 @@ private:
                 }
                 const bool startAtLogin = IsDlgButtonChecked(dialog, startupField) == BST_CHECKED;
                 if (!savePreferences(choices)) {
-                    MessageBoxW(dialog, L"Could not save your settings.", L"Shutdown Warning", MB_OK | MB_ICONERROR);
+                    MessageBoxW(dialog, L"Could not save your settings.", L"Idle Shutdown", MB_OK | MB_ICONERROR);
                     return 0;
                 }
                 preferences = choices;
@@ -1398,7 +1398,7 @@ private:
                 CheckDlgButton(dialog, startupField, savedStartAtLogin ? BST_CHECKED : BST_UNCHECKED);
                 if (!loginSaved) {
                     MessageBoxW(dialog, L"Warning settings were saved. The login startup entry could not be updated.",
-                                L"Shutdown Warning", MB_OK | MB_ICONERROR);
+                                L"Idle Shutdown", MB_OK | MB_ICONERROR);
                 } else if (trayRegistered) {
                     DestroyWindow(dialog);
                 }
@@ -1475,7 +1475,7 @@ private:
         }
         const HWND layer = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW |
                                               WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
-                                          overlayClass, L"Shutdown Warning", WS_POPUP,
+                                          overlayClass, L"Idle Shutdown", WS_POPUP,
                                           info.rcMonitor.left, info.rcMonitor.top, 1, 1,
                                           window, nullptr, instance, nullptr);
         if (!layer) {
@@ -1614,7 +1614,7 @@ private:
             if (result != ERROR_SUCCESS) {
                 wchar_t message[160]{};
                 swprintf_s(message, L"Windows could not shut down this PC (error %lu).", result);
-                MessageBoxW(settingsWindow, message, L"Shutdown Warning", MB_OK | MB_ICONERROR);
+                MessageBoxW(settingsWindow, message, L"Idle Shutdown", MB_OK | MB_ICONERROR);
             }
         }
     }
@@ -1636,13 +1636,13 @@ private:
 
     void showPreviewError(bool automatic, bool forcePowerOff) const {
         if (!automatic) {
-            MessageBoxW(settingsWindow, L"Could not start the preview on every display.", L"Shutdown Warning",
+            MessageBoxW(settingsWindow, L"Could not start the preview on every display.", L"Idle Shutdown",
                         MB_OK | MB_ICONERROR);
         } else if (forcePowerOff) {
             auto data = notification();
             data.uFlags = NIF_INFO;
             data.dwInfoFlags = NIIF_ERROR;
-            wcscpy_s(data.szInfoTitle, L"Shutdown Warning");
+            wcscpy_s(data.szInfoTitle, L"Idle Shutdown");
             wcscpy_s(data.szInfo, L"The countdown could not start on every display. Windows did not shut down.");
             if (!trayRegistered || !Shell_NotifyIconW(NIM_MODIFY, &data)) {
                 MessageBoxW(settingsWindow, data.szInfo, data.szInfoTitle, MB_OK | MB_ICONERROR);

@@ -1,33 +1,77 @@
-# Shutdown Warning
+# Idle Shutdown
 
-Shutdown Warning watches for keyboard and mouse inactivity and shows a synchronized warning on every screen. The warning plays a low siren, counts down, and ends with an animated blackout. Activity during the countdown cancels an automatic warning.
+### English
 
-- **Start after inactivity** controls when the automatic warning begins.
-- **Force shutdown after countdown** opts in to real power-off. An unavailable forced operation can fall back to an ordinary shutdown when the OS allows it. Unsaved work can be lost.
-- **Preview** runs the animation and sound without requesting power-off.
-- **Start at login** is opt-in. The checkbox follows the effective startup registration where the desktop exposes it.
+Idle Shutdown can automatically shut down your PC after a set period of keyboard and mouse inactivity. It runs in the system tray on Windows and Arch Linux and shows a full-screen countdown on every monitor. Press any key or move the mouse before the countdown reaches zero to cancel. Automatic shutdown is opt-in.
+
+### Русский
+
+Idle Shutdown может автоматически выключить компьютер, если вы не пользуетесь клавиатурой и мышью заданное время. Приложение работает в системном трее на Windows и Arch Linux и показывает полноэкранный обратный отсчёт на всех мониторах. Чтобы отменить выключение до конца отсчёта, нажмите любую клавишу или пошевелите мышью. Автоматическое выключение включается в настройках.
+
+### Polski
+
+Idle Shutdown może automatycznie wyłączyć komputer po określonym czasie bez używania klawiatury i myszy. Aplikacja działa w zasobniku systemowym w Windows i Arch Linux oraz wyświetla pełnoekranowe odliczanie na wszystkich monitorach. Aby anulować wyłączenie przed końcem odliczania, naciśnij dowolny klawisz lub porusz myszą. Automatyczne wyłączanie można włączyć w ustawieniach.
+
+![Idle Shutdown showing a red full-screen warning and a ten-second countdown](docs/images/warning.png)
+
+## Quick start
+
+1. Install the build for your system and open **Idle Shutdown Settings** from the tray.
+2. Turn on **Start after inactivity** and set the idle period and warning countdown.
+3. Click **Preview** to try the animation and sound. Preview is a simulation.
+4. To allow automatic power-off, enable **Force shutdown after countdown** and click **Save**. After zero, the app finishes the animation and requests power-off. Forced shutdown can discard unsaved work.
+
+**Start at login** is opt-in. The checkbox reflects the startup registration managed by the desktop.
+
+<img src="docs/images/settings.png" width="430" alt="Idle Shutdown settings for the inactivity time, countdown, sound, actual shutdown, and start at login">
+
+The screenshots show the Windows interface and warning overlay.
 
 ## Install
 
-**Windows x64.** Requires Windows 10 version 1703 or newer. Run the installer under your own account. It installs to `%LOCALAPPDATA%\Programs\Shutdown Warning` by default and adds an entry to **Settings → Apps → Installed apps** for removal. Click the tray icon to open settings. The installer and uninstaller close only the instance running from that installation. Existing settings are retained.
+Get the installer or package from the build artifacts on GitHub Actions or from a published release.
 
-**Arch Linux x86_64.** Install the local package with `sudo pacman -U ./shutdown-warning-1.0.5-1-x86_64.pkg.tar.zst`. Run `shutdown-warning` to start in the background or `shutdown-warning --settings` to open settings. On a desktop without a tray, keep the settings window open for automatic warnings. Use `sudo pacman -R shutdown-warning` to uninstall.
+| Platform | Installer or package | Supported environment |
+| --- | --- | --- |
+| Windows x64 | `IdleShutdown-Setup-1.0.6-x64.exe` | Windows 10 version 1703 or newer |
+| Arch Linux x86_64 | `shutdown-warning-1.0.6-1-x86_64.pkg.tar.zst` | X11 or a supported Wayland compositor |
 
-### Hyprland and other Wayland compositors
+### Windows
 
-Hyprland uses a user systemd service when **Start at login** is enabled. Launch once after upgrading to migrate an existing XDG autostart entry. For sessions that do not start their systemd graphical target, add the following line inside the existing `hyprland.start` handler. This path still checks **Start at login**.
+Run the installer under your own account. Its default path is `%LOCALAPPDATA%\Programs\Idle Shutdown`. An existing installation keeps its location and settings. Windows may list an existing startup entry under the previous name **Shutdown Warning**.
+
+Use **Settings → Apps → Installed apps** or run the generated `Uninstall.exe` from the installation folder to remove the app. The portable executable can open or reopen settings with `ShutdownWarning.exe --settings`.
+
+### Arch Linux
+
+```bash
+sudo pacman -U ./shutdown-warning-1.0.6-1-x86_64.pkg.tar.zst
+shutdown-warning --settings
+```
+
+Run `shutdown-warning` to start in the background. The desktop menu also opens settings. If your desktop has no tray host, keep the settings window open for automatic warnings. Remove the package with `sudo pacman -R shutdown-warning`.
+
+<details>
+<summary>Wayland, Quickshell, and Hyprland startup</summary>
+
+On Wayland compositors with `ext-idle-notify` v2, keyboard and mouse inactivity still counts while a video keeps the display awake. Other sessions use KIdleTime. The tray requires a StatusNotifier host on Wayland or a supported tray on X11. If your Quickshell configuration hides new icons, check its tray overflow.
+
+Hyprland uses a user systemd service for **Start at login**. If your configuration does not start the graphical session target, add this line inside the existing `hyprland.start` handler and log in again. The command respects the **Start at login** setting.
 
 ```lua
 hl.exec_cmd("/usr/bin/shutdown-warning --autostart")
 ```
 
-Wayland compositors supporting `ext-idle-notify` v2 can report input inactivity while a video keeps the screen awake. Other sessions use KIdleTime. The tray requires a desktop StatusNotifier host or an X11 tray. In Quickshell configurations that hide new items, open the tray overflow and pin the icon. Power-off follows the local systemd-logind and polkit permissions.
+On both platforms, if the OS rejects the forced request in a way that permits a fallback, the app tries an ordinary shutdown. On Linux the final request still depends on the session's systemd-logind and polkit permissions.
+
+</details>
 
 ## Build from source
 
-### Windows
+<details>
+<summary>Windows x64</summary>
 
-Install Visual Studio with its **Desktop development with C++** workload, the Windows 11 SDK (10.0.22000.0 or newer), CMake 3.24+, and NSIS to build the installer. From the repository root:
+Install CMake 3.24+, Visual Studio with **Desktop development with C++**, the Windows 11 SDK (10.0.22000.0 or newer), and NSIS for the installer.
 
 ```powershell
 cmake --preset windows
@@ -36,9 +80,12 @@ ctest --preset windows
 pwsh -File ./packaging/windows/build-installer.ps1
 ```
 
-The portable executable is in `build/windows/Release`, and the installer is in `dist`. On an already running copy, launch `ShutdownWarning.exe --settings` to open its settings. The installation can be removed using **Installed apps** or the generated `Uninstall.exe`.
+The executable is in `build/windows/Release`. The installer is in `dist`.
 
-### Arch Linux
+</details>
+
+<details>
+<summary>Arch Linux x86_64</summary>
 
 From a local checkout:
 
@@ -47,7 +94,7 @@ sudo pacman -S --needed base-devel
 makepkg -si
 ```
 
-The PKGBUILD builds and tests from this checkout. To build and test directly with CMake, install the PKGBUILD dependencies and run:
+For a direct CMake build, first install the dependencies listed in `PKGBUILD`, then run:
 
 ```bash
 cmake --preset linux
@@ -55,6 +102,6 @@ cmake --build --preset linux
 ctest --preset linux
 ```
 
-The Windows and Linux interfaces use native desktop APIs, with shared audio synthesis in `app/common`. The test suite validates the generated PCM files, and the Linux renderer also has an offscreen frame test.
+</details>
 
-GitHub Actions builds Windows and Arch artifacts. Publishing releases and signing the Windows installer are separate from building them.
+The Windows and Linux builds use their desktop APIs and share audio synthesis in `app/common`. CTest checks the generated audio, and the Linux build includes an offscreen rendering test. GitHub Actions builds and uploads both packages as artifacts.

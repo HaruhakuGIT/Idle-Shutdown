@@ -42,6 +42,8 @@ Run the installer under your own account. Its default path is `%LOCALAPPDATA%\Pr
 
 Use **Settings → Apps → Installed apps** or run the generated `Uninstall.exe` from the installation folder to remove the app. The portable executable can open or reopen settings with `ShutdownWarning.exe --settings`.
 
+During an automatic power-off, the final animation fades to black across all monitors. Once Windows accepts the shutdown request, Idle Shutdown asks Windows to turn the displays off.
+
 ### Arch Linux
 
 ```bash
@@ -62,7 +64,7 @@ Hyprland uses a user systemd service for **Start at login**. If your configurati
 hl.exec_cmd("/usr/bin/shutdown-warning --autostart")
 ```
 
-On both platforms, if the OS rejects the forced request in a way that permits a fallback, the app tries an ordinary shutdown. On Linux the final request still depends on the session's systemd-logind and polkit permissions.
+On Linux, if the OS rejects the forced request in a way that permits a fallback, the app tries an ordinary shutdown. The final request depends on the session's systemd-logind and polkit permissions.
 
 </details>
 

@@ -236,8 +236,8 @@ DWORD requestForcedPowerOff() {
         } else if (result == ERROR_ACCESS_DENIED || result == ERROR_NOT_SUPPORTED ||
                    result == ERROR_INVALID_FUNCTION || result == ERROR_CALL_NOT_IMPLEMENTED ||
                    result == ERROR_INVALID_PARAMETER) {
-            // A regular power-off honors application vetoes and still requires the shutdown privilege.
-            result = ExitWindowsEx(EWX_POWEROFF, reason) ? ERROR_SUCCESS : GetLastError();
+            result = InitiateSystemShutdownExW(nullptr, nullptr, 0, TRUE, FALSE, reason)
+                ? ERROR_SUCCESS : GetLastError();
             if (result == ERROR_SHUTDOWN_IN_PROGRESS) {
                 result = ERROR_SUCCESS;
             }
@@ -355,14 +355,16 @@ public:
         const float finishedFor = std::max(0.0f, time - intro - countdown);
         const float collapse = ease(finishedFor / collapseDuration);
         const float sceneOpacity = 1 - collapse;
-        const float windowOpacity = 1 - ease((finishedFor - 1.30f) / (outro - 1.30f));
+        const float fade = ease((finishedFor - 1.30f) / (outro - 1.30f));
+        const float black = powerOffAtZero ? fade : 0;
         const float appear = ease(time / intro);
         const int seconds = static_cast<int>(std::ceil(remaining));
 
         target->BeginDraw();
         target->SetTransform(D2D1::Matrix3x2F::Identity());
-        target->Clear(D2D1::ColorF(0, 0.0f));
-        target->DrawBitmap(shadedDesktop.Get(), nullptr, appear, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+        target->Clear(D2D1::ColorF(0, black));
+        target->DrawBitmap(shadedDesktop.Get(), nullptr, appear * (1 - black),
+                           D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
         target->SetTransform(artworkTransform);
         drawBackground(time, appear * sceneOpacity, remaining);
         drawOrbits(time, ease(time / 0.48f), remaining, collapse);
@@ -380,17 +382,26 @@ public:
         if (finishedFor > 0) {
             drawShutdownAnimation(finishedFor, collapse);
         }
+        return present(window, powerOffAtZero ? 1 : 1 - fade);
+    }
+
+    bool blank(HWND window) {
+        target->BeginDraw();
+        target->Clear(D2D1::ColorF(0, 1.0f));
+        return present(window, 1);
+    }
+
+private:
+    bool present(HWND window, float opacity) {
         if (FAILED(target->EndDraw())) {
             return false;
         }
-
         POINT source{};
-        BLENDFUNCTION blend{ AC_SRC_OVER, 0, static_cast<BYTE>(255 * windowOpacity), AC_SRC_ALPHA };
+        BLENDFUNCTION blend{ AC_SRC_OVER, 0, static_cast<BYTE>(255 * opacity), AC_SRC_ALPHA };
         return UpdateLayeredWindow(window, nullptr, &position, &size, surface, &source, 0,
                                    &blend, ULW_ALPHA) != FALSE;
     }
 
-private:
     bool makeBackground(float offsetX, float offsetY) {
         const D2D1_GRADIENT_STOP gridColors[] = {
             {0.00f, D2D1::ColorF(red, 0.20f)},
@@ -832,7 +843,7 @@ constexpr Control controls[] = {
     {L"EDIT", L"", WS_TABSTOP | ES_NUMBER | ES_CENTER, countdownField, 321, 182, 76, 27},
     {L"BUTTON", L"Play warning sounds", WS_TABSTOP | BS_AUTOCHECKBOX, soundField, 22, 224, 300, 28},
     {L"BUTTON", L"Force shutdown after countdown", WS_TABSTOP | BS_AUTOCHECKBOX, forceField, 22, 263, 365, 28},
-    {L"STATIC", L"If forced shutdown is denied, Windows tries a regular shutdown.\r\nUnsaved work can be lost.", 0, 204, 22, 290, 375, 34},
+    {L"STATIC", L"Windows closes apps automatically.\r\nUnsaved work can be lost.", 0, 204, 22, 290, 375, 34},
     {L"BUTTON", L"Start at login", WS_TABSTOP | BS_AUTOCHECKBOX, startupField, 22, 334, 365, 28},
     {L"BUTTON", L"Preview", WS_TABSTOP | BS_PUSHBUTTON, previewButton, 22, 386, 101, 32},
     {L"BUTTON", L"Cancel", WS_TABSTOP | BS_PUSHBUTTON, IDCANCEL, 216, 386, 84, 32},
@@ -1142,9 +1153,16 @@ private:
             return 0;
         }
         if (message == WM_TIMER && wParam == idleTimer) {
+            if (blackoutDeadline && GetTickCount64() >= blackoutDeadline) {
+                restoreAfterShutdown();
+            }
             pollTray();
             refreshStartupSetting();
             pollIdle();
+            return 0;
+        }
+        if (message == WM_ENDSESSION && !wParam && blackoutDeadline) {
+            restoreAfterShutdown();
             return 0;
         }
         if (message == WM_DISPLAYCHANGE || (message == WM_COMMAND && LOWORD(wParam) == IDCANCEL)) {
@@ -1608,14 +1626,38 @@ private:
     }
 
     void finishPreview(bool forcePowerOff) {
-        closePreview();
-        if (forcePowerOff) {
-            const DWORD result = requestForcedPowerOff();
-            if (result != ERROR_SUCCESS) {
-                wchar_t message[160]{};
-                swprintf_s(message, L"Windows could not shut down this PC (error %lu).", result);
-                MessageBoxW(settingsWindow, message, L"Idle Shutdown", MB_OK | MB_ICONERROR);
+        if (!forcePowerOff) {
+            closePreview();
+            return;
+        }
+        KillTimer(window, frameTimer);
+        for (const auto& view : views) {
+            view.renderer->blank(view.window);
+        }
+        DwmFlush();
+        // Windows can accept a shutdown request and still abort it asynchronously.
+        blackoutDeadline = GetTickCount64() + 15000;
+        const DWORD result = requestForcedPowerOff();
+        if (result == ERROR_SUCCESS) {
+            if (blackoutDeadline) {
+                monitorPowerOff = true;
+                DefWindowProcW(window, WM_SYSCOMMAND, SC_MONITORPOWER, 2);
             }
+            return;
+        }
+        restoreAfterShutdown();
+        wchar_t message[160]{};
+        swprintf_s(message, L"Windows could not shut down this PC (error %lu).", result);
+        MessageBoxW(settingsWindow, message, L"Idle Shutdown", MB_OK | MB_ICONERROR);
+    }
+
+    void restoreAfterShutdown() {
+        blackoutDeadline = 0;
+        closePreview();
+        resetIdleClock();
+        if (monitorPowerOff) {
+            monitorPowerOff = false;
+            DefWindowProcW(window, WM_SYSCOMMAND, SC_MONITORPOWER, -1);
         }
     }
 
@@ -1675,6 +1717,8 @@ private:
     std::vector<char> alert = sound::warningSound();
     std::vector<char> tick = sound::countdownSound();
     ULONGLONG previewStart{};
+    ULONGLONG blackoutDeadline{};
+    bool monitorPowerOff{};
     int previousSecond{};
 };
 

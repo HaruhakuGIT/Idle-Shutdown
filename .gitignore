@@ -1,0 +1,7 @@
+/build/
+/dist/
+/pkg/
+/*.pkg.tar*
+/CMakeUserPresets.json
+/.vs/
+/src/

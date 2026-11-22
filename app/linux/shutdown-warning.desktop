@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Shutdown Warning
+Comment=Show a warning after inactivity
+Exec=shutdown-warning --settings
+Icon=shutdown-warning
+Terminal=false
+Categories=Utility;

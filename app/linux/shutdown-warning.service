@@ -1,0 +1,11 @@
+[Unit]
+Description=Shutdown Warning
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+ExecStart="@CMAKE_INSTALL_FULL_BINDIR@/shutdown-warning" --foreground --autostart
+
+[Install]
+WantedBy=graphical-session.target

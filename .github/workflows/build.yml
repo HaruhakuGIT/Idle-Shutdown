@@ -1,0 +1,80 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configure
+        run: cmake --preset windows
+
+      - name: Build
+        run: cmake --build --preset windows
+
+      - name: Test
+        run: ctest --preset windows
+
+      - name: Install NSIS
+        run: choco install nsis --yes --no-progress
+
+      - name: Package the installer
+        shell: pwsh
+        run: |
+          $binary = Get-Item -LiteralPath 'build/windows/Release/ShutdownWarning.exe'
+          ./packaging/windows/build-installer.ps1 -Version $binary.VersionInfo.ProductVersion -Binary $binary.FullName -OutputDirectory dist
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: shutdown-warning-windows-x64
+          path: dist/*.exe
+          if-no-files-found: error
+
+  arch:
+    name: Arch Linux x86_64
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build, test, and package in Arch Linux
+        shell: bash
+        run: |
+          mkdir -p dist
+          docker run --rm -i \
+            --mount "type=bind,source=$PWD,target=/source,readonly" \
+            --mount "type=bind,source=$PWD/dist,target=/dist" \
+            archlinux:base-devel bash -euo pipefail <<'BUILD'
+          pacman -Syu --noconfirm --needed \
+            cmake ninja pkgconf qt6-base qt6-wayland kidletime layer-shell-qt \
+            wayland wayland-protocols libpulse libxext libxss ttf-dejavu
+          useradd --create-home builder
+          install -d -o builder -g builder /tmp/shutdown-warning
+          cp -r /source/CMakeLists.txt /source/PKGBUILD /source/app /source/tests /tmp/shutdown-warning/
+          chown -R builder:builder /tmp/shutdown-warning
+          cd /tmp/shutdown-warning
+          runuser -u builder -- makepkg --noconfirm --clean
+          cp shutdown-warning-*.pkg.tar.zst /dist/
+          BUILD
+
+      - name: Upload Arch package
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: shutdown-warning-arch-x86_64
+          path: dist/*.pkg.tar.zst
+          if-no-files-found: error

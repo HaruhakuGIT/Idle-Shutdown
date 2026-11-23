@@ -2,15 +2,21 @@
 
 ### English
 
-Idle Shutdown can automatically shut down your PC after a set period of keyboard and mouse inactivity. It runs in the system tray on Windows and Arch Linux and shows a full-screen countdown on every monitor. Press any key or move the mouse before the countdown reaches zero to cancel. Automatic shutdown is opt-in.
+**Dozed off at your computer? Idle Shutdown can turn it off for you.**
+
+Enable automatic shutdown and choose how long your PC should wait without keyboard or mouse activity. Before turning off, it shows a full-screen countdown on every monitor. If you're still at your desk, press a key or click the mouse before the countdown ends to cancel. Available for Windows and Arch Linux.
 
 ### Русский
 
-Idle Shutdown может автоматически выключить компьютер, если вы не пользуетесь клавиатурой и мышью заданное время. Приложение работает в системном трее на Windows и Arch Linux и показывает полноэкранный обратный отсчёт на всех мониторах. Чтобы отменить выключение до конца отсчёта, нажмите любую клавишу или пошевелите мышью. Автоматическое выключение включается в настройках.
+**Задремали за компьютером? Idle Shutdown может выключить его за вас.**
+
+Включите автоматическое выключение и задайте, сколько компьютер должен ждать без ввода с клавиатуры и мыши. Перед выключением на всех мониторах появится полноэкранный обратный отсчёт. Если вы ещё за компьютером, нажмите клавишу или кликните мышью до конца отсчёта, чтобы отменить выключение. Приложение доступно для Windows и Arch Linux.
 
 ### Polski
 
-Idle Shutdown może automatycznie wyłączyć komputer po określonym czasie bez używania klawiatury i myszy. Aplikacja działa w zasobniku systemowym w Windows i Arch Linux oraz wyświetla pełnoekranowe odliczanie na wszystkich monitorach. Aby anulować wyłączenie przed końcem odliczania, naciśnij dowolny klawisz lub porusz myszą. Automatyczne wyłączanie można włączyć w ustawieniach.
+**Zdarzyło Ci się przysnąć przy komputerze? Idle Shutdown może go za Ciebie wyłączyć.**
+
+Włącz automatyczne wyłączanie i ustaw, jak długo komputer ma czekać bez używania klawiatury lub myszy. Przed wyłączeniem na wszystkich monitorach pojawi się pełnoekranowe odliczanie. Jeśli nadal jesteś przy komputerze, naciśnij klawisz lub kliknij myszą przed końcem odliczania, aby anulować wyłączenie. Aplikacja jest dostępna na Windows i Arch Linux.
 
 ![Idle Shutdown showing a red full-screen warning and a ten-second countdown](docs/images/warning.png)
 

@@ -1,5 +1,6 @@
 #include "sound.h"
 #include "ext-idle-notify-client.h"
+#include "x11_input.h"
 
 #include <KIdleTime>
 #include <LayerShellQt/Window>
@@ -849,19 +850,34 @@ public:
             waylandIdle = std::make_unique<WaylandInputIdle>(
                 [this] { begin(settings, true); },
                 [this] { if (automatic) cancel(); });
+        } else if (QGuiApplication::platformName() == QStringLiteral("xcb") &&
+                   qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY")) {
+            x11Input = watchX11Input([this] {
+                if (automatic) {
+                    cancel();
+                }
+                if (settings.automatic) {
+                    x11IdleTimer.start(settings.idleMinutes * 60000);
+                }
+            });
+            x11IdleTimer.setTimerType(Qt::PreciseTimer);
+            x11IdleTimer.setSingleShot(true);
+            connect(&x11IdleTimer, &QTimer::timeout, this, [this] { begin(settings, true); });
         }
-        auto* idle = KIdleTime::instance();
-        connect(idle, qOverload<int, int>(&KIdleTime::timeoutReached), this, [this, idle](int id, int) {
-            if (id == idleId && id > 0) {
-                idle->catchNextResumeEvent();
-                begin(settings, true);
-            }
-        });
-        connect(idle, &KIdleTime::resumingFromIdle, this, [this] {
-            if (automatic) {
-                cancel();
-            }
-        });
+        if (!x11Input) {
+            auto* idle = KIdleTime::instance();
+            connect(idle, qOverload<int, int>(&KIdleTime::timeoutReached), this, [this, idle](int id, int) {
+                if (id == idleId && id > 0) {
+                    idle->catchNextResumeEvent();
+                    begin(settings, true);
+                }
+            });
+            connect(idle, &KIdleTime::resumingFromIdle, this, [this] {
+                if (automatic) {
+                    cancel();
+                }
+            });
+        }
         armIdle();
         buildSettings();
         setupTray();
@@ -924,6 +940,13 @@ private:
     }
 
     void armIdle() {
+        if (x11Input) {
+            x11IdleTimer.stop();
+            if (settings.automatic) {
+                x11IdleTimer.start(settings.idleMinutes * 60000);
+            }
+            return;
+        }
         auto* idle = KIdleTime::instance();
         if (idleId > 0) {
             idle->removeIdleTimeout(idleId);
@@ -1058,7 +1081,7 @@ private:
     }
 
     void updateSupportNote() {
-        const bool unsupported = settings.automatic && idleId <= 0 &&
+        const bool unsupported = settings.automatic && !x11Input && idleId <= 0 &&
                                  (!waylandIdle || !waylandIdle->available());
         supportNote->setText(QStringLiteral("Global idle detection is unavailable in this desktop session."));
         supportNote->setVisible(unsupported);
@@ -1218,6 +1241,8 @@ private:
     QLabel* trayNote = nullptr;
     QTimer timer;
     QTimer desktopStatus;
+    QTimer x11IdleTimer;
+    std::unique_ptr<QObject> x11Input;
     std::unique_ptr<WaylandInputIdle> waylandIdle;
     QElapsedTimer elapsed;
     std::vector<std::unique_ptr<Overlay>> views;
@@ -1316,7 +1341,7 @@ int main(int argc, char** argv) {
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Shutdown Warning"));
     app.setApplicationDisplayName(QStringLiteral("Idle Shutdown"));
-    app.setApplicationVersion(QStringLiteral("1.0.7"));
+    app.setApplicationVersion(QStringLiteral("1.0.8"));
     app.setOrganizationName(QStringLiteral("ShutdownWarning"));
     app.setDesktopFileName(QStringLiteral("shutdown-warning"));
     app.setQuitOnLastWindowClosed(false);

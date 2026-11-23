@@ -33,8 +33,8 @@ Get the installer or package from the build artifacts on GitHub Actions or from 
 
 | Platform | Installer or package | Supported environment |
 | --- | --- | --- |
-| Windows x64 | `IdleShutdown-Setup-1.0.7-x64.exe` | Windows 10 version 1703 or newer |
-| Arch Linux x86_64 | `shutdown-warning-1.0.7-1-x86_64.pkg.tar.zst` | X11 or a supported Wayland compositor |
+| Windows x64 | `IdleShutdown-Setup-1.0.8-x64.exe` | Windows 10 version 1703 or newer |
+| Arch Linux x86_64 | `shutdown-warning-1.0.8-1-x86_64.pkg.tar.zst` | X11 or a supported Wayland compositor |
 
 ### Windows
 
@@ -49,11 +49,13 @@ Small mouse movements are ignored when measuring inactivity and during the autom
 ### Arch Linux
 
 ```bash
-sudo pacman -U ./shutdown-warning-1.0.7-1-x86_64.pkg.tar.zst
+sudo pacman -U ./shutdown-warning-1.0.8-1-x86_64.pkg.tar.zst
 shutdown-warning --settings
 ```
 
 Run `shutdown-warning` to start in the background. The desktop menu also opens settings. If your desktop has no tray host, keep the settings window open for automatic warnings. Remove the package with `sudo pacman -R shutdown-warning`.
+
+On X11, Idle Shutdown ignores small movements from relative mice when measuring inactivity and during the automatic countdown. Keys, clicks, and scrolling still count immediately. On Wayland, the compositor's idle protocol reports activity without identifying the device or the amount of movement, so any activity reported by the compositor still resets the timer.
 
 <details>
 <summary>Wayland, Quickshell, and Hyprland startup</summary>

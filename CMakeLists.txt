@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(ShutdownWarning VERSION 1.0.7 LANGUAGES CXX)
+project(ShutdownWarning VERSION 1.0.8 LANGUAGES CXX)
 
 include(CTest)
 include(GNUInstallDirs)
@@ -28,4 +28,9 @@ if(BUILD_TESTING)
     target_compile_features(shutdown-warning-sound-test PRIVATE cxx_std_20)
     target_include_directories(shutdown-warning-sound-test PRIVATE app/common)
     add_test(NAME synthesized-audio COMMAND shutdown-warning-sound-test)
+
+    add_executable(shutdown-warning-motion-test tests/mouse_motion_test.cpp)
+    target_compile_features(shutdown-warning-motion-test PRIVATE cxx_std_20)
+    target_include_directories(shutdown-warning-motion-test PRIVATE app/common)
+    add_test(NAME mouse-motion COMMAND shutdown-warning-motion-test)
 endif()

@@ -62,7 +62,7 @@ jobs:
             archlinux:base-devel bash -euo pipefail <<'BUILD'
           pacman -Syu --noconfirm --needed \
             cmake ninja pkgconf qt6-base qt6-wayland kidletime layer-shell-qt \
-            wayland wayland-protocols libpulse libxext libxss ttf-dejavu
+            wayland wayland-protocols libpulse libx11 libxi libxext libxss ttf-dejavu
           useradd --create-home builder
           install -d -o builder -g builder /tmp/shutdown-warning
           cp -r /source/CMakeLists.txt /source/PKGBUILD /source/app /source/tests /tmp/shutdown-warning/

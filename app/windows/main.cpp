@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "sound.h"
+#include "mouse_motion.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <d2d1.h>
@@ -42,8 +43,6 @@ constexpr int minimumSeconds = 5;
 constexpr int maximumSeconds = 120;
 constexpr DWORD minimumIdleMinutes = 1;
 constexpr DWORD maximumIdleMinutes = 240;
-constexpr DWORD mouseMotionGap = 250;
-constexpr int mouseMotionThreshold = 12;
 constexpr float intro = 0.8f;
 constexpr float collapseDuration = 0.66f;
 constexpr float outro = 1.90f;
@@ -257,28 +256,6 @@ DWORD requestForcedPowerOff() {
 struct IdlePeriod {
     DWORD began{};
     bool handled{};
-};
-
-struct MouseMotion {
-    HANDLE device{};
-    DWORD lastMotion{};
-    int64_t x{};
-    int64_t y{};
-
-    bool moved(HANDLE source, DWORD now, LONG dx, LONG dy) {
-        if (!dx && !dy) {
-            return false;
-        }
-        // Count displacement within a gesture. Opposite movements cancel each other out.
-        if (device != source || now - lastMotion >= mouseMotionGap) {
-            x = y = 0;
-        }
-        device = source;
-        lastMotion = now;
-        x += dx;
-        y += dy;
-        return std::abs(x) + std::abs(y) >= mouseMotionThreshold;
-    }
 };
 
 float ease(float value) {
@@ -1574,8 +1551,8 @@ private:
         } else if (input.header.dwType == RIM_TYPEMOUSE) {
             const auto& mouse = input.data.mouse;
             const auto delta = mouseDelta(input.header.hDevice, mouse);
-            if (mouse.usButtonFlags || mouseMotion.moved(input.header.hDevice, static_cast<DWORD>(GetMessageTime()),
-                                                        delta.x, delta.y)) {
+            if (mouse.usButtonFlags || mouseMotion.moved(reinterpret_cast<std::uintptr_t>(input.header.hDevice),
+                                                       static_cast<DWORD>(GetMessageTime()), delta.x, delta.y)) {
                 recordActivity();
             }
         }

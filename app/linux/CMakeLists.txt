@@ -5,6 +5,7 @@ find_package(KF6IdleTime REQUIRED)
 find_package(LayerShellQt REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Wayland REQUIRED IMPORTED_TARGET wayland-client)
+pkg_check_modules(XInput REQUIRED IMPORTED_TARGET x11 xi)
 pkg_check_modules(WaylandProtocols REQUIRED wayland-protocols)
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
@@ -24,7 +25,7 @@ add_custom_command(
     VERBATIM
 )
 
-add_executable(shutdown-warning main.cpp "${IDLE_HEADER}" "${IDLE_SOURCE}")
+add_executable(shutdown-warning main.cpp x11_input.cpp "${IDLE_HEADER}" "${IDLE_SOURCE}")
 target_include_directories(shutdown-warning PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/app/common"
@@ -33,7 +34,7 @@ target_compile_features(shutdown-warning PRIVATE cxx_std_20)
 target_compile_options(shutdown-warning PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(shutdown-warning PRIVATE
     Qt6::Widgets Qt6::DBus Qt6::Network
-    KF6::IdleTime LayerShellQt::Interface PkgConfig::Wayland
+    KF6::IdleTime LayerShellQt::Interface PkgConfig::Wayland PkgConfig::XInput
 )
 
 include(GNUInstallDirs)

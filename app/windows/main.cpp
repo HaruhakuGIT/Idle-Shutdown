@@ -6,6 +6,7 @@
 #include <d2d1.h>
 #include <dwmapi.h>
 #include <dwrite.h>
+#include <hidusage.h>
 #include <mmsystem.h>
 #include <shellapi.h>
 #include <wrl/client.h>
@@ -15,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <numbers>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -40,6 +42,8 @@ constexpr int minimumSeconds = 5;
 constexpr int maximumSeconds = 120;
 constexpr DWORD minimumIdleMinutes = 1;
 constexpr DWORD maximumIdleMinutes = 240;
+constexpr DWORD mouseMotionGap = 250;
+constexpr int mouseMotionThreshold = 12;
 constexpr float intro = 0.8f;
 constexpr float collapseDuration = 0.66f;
 constexpr float outro = 1.90f;
@@ -251,20 +255,29 @@ DWORD requestForcedPowerOff() {
 }
 
 struct IdlePeriod {
-    DWORD input{};
     DWORD began{};
     bool handled{};
+};
 
-    void reset(DWORD now, DWORD inputTick) {
-        input = inputTick;
-        began = now;
-        handled = false;
-    }
+struct MouseMotion {
+    HANDLE device{};
+    DWORD lastMotion{};
+    int64_t x{};
+    int64_t y{};
 
-    void observe(DWORD now, DWORD inputTick) {
-        if (inputTick != input) {
-            reset(now, inputTick);
+    bool moved(HANDLE source, DWORD now, LONG dx, LONG dy) {
+        if (!dx && !dy) {
+            return false;
         }
+        // Count displacement within a gesture. Opposite movements cancel each other out.
+        if (device != source || now - lastMotion >= mouseMotionGap) {
+            x = y = 0;
+        }
+        device = source;
+        lastMotion = now;
+        x += dx;
+        y += dy;
+        return std::abs(x) + std::abs(y) >= mouseMotionThreshold;
     }
 };
 
@@ -835,7 +848,7 @@ struct Control {
 
 constexpr Control controls[] = {
     {L"STATIC", L"Automatic warning", 0, settingsHeading, 22, 20, 300, 30},
-    {L"STATIC", L"Keyboard or mouse activity cancels it.", 0, 201, 22, 55, 300, 21},
+    {L"STATIC", L"Press a key, click, or move the mouse to cancel.", 0, 201, 22, 55, 300, 21},
     {L"BUTTON", L"Start after inactivity", WS_TABSTOP | BS_AUTOCHECKBOX, automaticField, 22, 90, 300, 28},
     {L"STATIC", L"Inactivity (1-240 minutes)", 0, 202, 22, 135, 275, 22},
     {L"EDIT", L"", WS_TABSTOP | ES_NUMBER | ES_CENTER, idleField, 321, 128, 76, 27},
@@ -1021,6 +1034,11 @@ public:
 
         icon = makeTrayIcon();
         registerTrayIcon();
+        const RAWINPUTDEVICE devices[] = {
+            {HID_USAGE_PAGE_GENERIC, HID_USAGE_GENERIC_MOUSE, RIDEV_INPUTSINK, window},
+            {HID_USAGE_PAGE_GENERIC, HID_USAGE_GENERIC_KEYBOARD, RIDEV_INPUTSINK, window},
+        };
+        rawInputRegistered = RegisterRawInputDevices(devices, ARRAYSIZE(devices), sizeof(RAWINPUTDEVICE));
         resetIdleClock();
         if (!SetTimer(window, idleTimer, 500, nullptr)) {
             MessageBoxW(nullptr, L"Could not start inactivity monitoring.", L"Idle Shutdown", MB_OK | MB_ICONERROR);
@@ -1127,6 +1145,10 @@ private:
     }
 
     LRESULT handleTray(HWND host, UINT message, WPARAM wParam, LPARAM lParam) {
+        if (message == WM_INPUT) {
+            handleInput(reinterpret_cast<HRAWINPUT>(lParam));
+            return DefWindowProcW(host, message, wParam, lParam);
+        }
         if (message == trayCallback) {
             switch (LOWORD(lParam)) {
             case NIN_SELECT:
@@ -1166,6 +1188,10 @@ private:
             return 0;
         }
         if (message == WM_DISPLAYCHANGE || (message == WM_COMMAND && LOWORD(wParam) == IDCANCEL)) {
+            if (message == WM_DISPLAYCHANGE) {
+                absolutePosition.reset();
+                mouseMotion = {};
+            }
             cancelPreview();
             return 0;
         }
@@ -1519,22 +1545,76 @@ private:
 
     void resetIdleClock() {
         const DWORD now = GetTickCount();
-        DWORD input = now;
-        latestInput(input);
-        idle.reset(now, input);
+        idle = {now};
+        mouseMotion = {};
+        if (!rawInputRegistered) {
+            fallbackInputTick = now;
+            latestInput(fallbackInputTick);
+        }
+    }
+
+    void recordActivity() {
+        idle = {GetTickCount()};
+        mouseMotion = {};
+        if (automaticPreview) {
+            cancelPreview();
+        }
+    }
+
+    void handleInput(HRAWINPUT handle) {
+        RAWINPUT input{};
+        UINT size = sizeof(input);
+        if (GetRawInputData(handle, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER)) == UINT(-1)) {
+            return;
+        }
+        if (input.header.dwType == RIM_TYPEKEYBOARD) {
+            if (input.data.keyboard.VKey != 255) {
+                recordActivity();
+            }
+        } else if (input.header.dwType == RIM_TYPEMOUSE) {
+            const auto& mouse = input.data.mouse;
+            const auto delta = mouseDelta(input.header.hDevice, mouse);
+            if (mouse.usButtonFlags || mouseMotion.moved(input.header.hDevice, static_cast<DWORD>(GetMessageTime()),
+                                                        delta.x, delta.y)) {
+                recordActivity();
+            }
+        }
+    }
+
+    POINT mouseDelta(HANDLE device, const RAWMOUSE& mouse) {
+        if (!(mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
+            absolutePosition.reset();
+            return {mouse.lLastX, mouse.lLastY};
+        }
+        const bool virtualDesktop = (mouse.usFlags & MOUSE_VIRTUAL_DESKTOP) != 0;
+        const POINT position{
+            MulDiv(mouse.lLastX, GetSystemMetrics(virtualDesktop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN), 65535),
+            MulDiv(mouse.lLastY, GetSystemMetrics(virtualDesktop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN), 65535),
+        };
+        POINT delta{};
+        if (absolutePosition && absoluteDevice == device && absoluteVirtualDesktop == virtualDesktop) {
+            delta = {position.x - absolutePosition->x, position.y - absolutePosition->y};
+        }
+        absolutePosition = position;
+        absoluteDevice = device;
+        absoluteVirtualDesktop = virtualDesktop;
+        return delta;
+    }
+
+    void pollFallbackInput() {
+        DWORD input{};
+        if (!rawInputRegistered && latestInput(input) && input != fallbackInputTick) {
+            fallbackInputTick = input;
+            recordActivity();
+        }
     }
 
     void pollIdle() {
         if (!preferences.automatic) {
             return;
         }
-        DWORD input{};
-        if (!latestInput(input)) {
-            return;
-        }
-        const DWORD now = GetTickCount();
-        idle.observe(now, input);
-        if (!idle.handled && now - idle.began >= preferences.idleMinutes * 60000u) {
+        pollFallbackInput();
+        if (!idle.handled && GetTickCount() - idle.began >= preferences.idleMinutes * 60000u) {
             idle.handled = true;
             startPreview(preferences, true);
         }
@@ -1567,7 +1647,6 @@ private:
 
         preview = choices;
         automaticPreview = automatic;
-        previewInput = idle.input;
         previousSecond = static_cast<int>(preview.seconds);
         for (const auto& view : views) {
             ShowWindow(view.window, SW_SHOWNOACTIVATE);
@@ -1591,12 +1670,13 @@ private:
             return;
         }
         if (!committed) {
-            DWORD input{};
-            const bool renewedActivity = automaticPreview && latestInput(input) && input != previewInput;
-            if (renewedActivity) {
-                idle.reset(GetTickCount(), input);
+            if (automaticPreview) {
+                pollFallbackInput();
+                if (views.empty()) {
+                    return;
+                }
             }
-            if (renewedActivity || (GetAsyncKeyState(VK_ESCAPE) & 0x8000)) {
+            if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
                 closePreview();
                 return;
             }
@@ -1711,8 +1791,13 @@ private:
     bool savedStartAtLogin = false;
     Preferences preview{};
     IdlePeriod idle;
+    MouseMotion mouseMotion;
+    std::optional<POINT> absolutePosition;
+    HANDLE absoluteDevice{};
+    DWORD fallbackInputTick{};
+    bool absoluteVirtualDesktop{};
+    bool rawInputRegistered{};
     bool automaticPreview{};
-    DWORD previewInput{};
     std::vector<PreviewView> views;
     std::vector<char> alert = sound::warningSound();
     std::vector<char> tick = sound::countdownSound();

@@ -44,6 +44,8 @@ Use **Settings → Apps → Installed apps** or run the generated `Uninstall.exe
 
 During an automatic power-off, the final animation fades to black across all monitors. Once Windows accepts the shutdown request, Idle Shutdown asks Windows to turn the displays off.
 
+Small mouse movements are ignored when measuring inactivity and during the automatic countdown. A deliberate mouse movement, a click, scrolling, or a key press registers as activity. If Raw Input registration fails, the app uses Windows' standard idle detection.
+
 ### Arch Linux
 
 ```bash
